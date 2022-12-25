@@ -6,6 +6,6 @@ export class AppService {
   constructor(private configService: ConfigService) {}
 
   getHello(): string {
-    return this.configService.get<string>('Hello');
+    return this.configService.get<string>('MONGODB_URI');
   }
 }
