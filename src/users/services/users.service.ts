@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { UsersRepository } from '../db/users.repository';
 import { User } from '../db/users.schema';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class UsersService {
@@ -15,10 +16,11 @@ export class UsersService {
     password: string;
     email?: string;
   }) {
+    const salt = await bcrypt.genSalt(10);
     const user: User = {
       username,
       email: email ? email : '',
-      password,
+      password: await bcrypt.hash(password, salt),
       resetLink: '',
       dateOfRegistration: new Date().toString(),
       roles: [],
@@ -30,8 +32,12 @@ export class UsersService {
     return this.usersRepository.deleteOne(userId);
   }
 
-  async get(userId: string): Promise<User> {
-    return this.usersRepository.findOne({ userId });
+  async findById(userId: string): Promise<User> {
+    return this.usersRepository.findOne({ _id: userId });
+  }
+
+  async findByUsername(username: string): Promise<User> {
+    return this.usersRepository.findOne({ username });
   }
 
   async all(): Promise<User[]> {
