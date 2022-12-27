@@ -3,6 +3,7 @@ import { UsersRepository } from '../db/users.repository';
 import { User } from '../db/users.schema';
 import * as bcrypt from 'bcrypt';
 import { Document } from 'mongoose';
+import { Role } from 'src/auth/roles';
 
 @Injectable()
 export class UsersService {
@@ -24,7 +25,7 @@ export class UsersService {
       password: await bcrypt.hash(password, salt),
       resetLink: '',
       dateOfRegistration: new Date().toString(),
-      roles: [],
+      roles: ['User'],
     };
     return this.usersRepository.createOne(user);
   }
