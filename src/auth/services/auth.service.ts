@@ -2,6 +2,9 @@ import { Injectable } from '@nestjs/common';
 import { UsersService } from 'src/users/services/users.service';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
+import { SignUpDto } from '../dtos/signUp.dto';
+import { User } from 'src/users/db/users.schema';
+import { Document } from 'mongoose';
 
 @Injectable()
 export class AuthService {
@@ -19,12 +22,16 @@ export class AuthService {
     return null;
   }
 
-  async register(userData: any): Promise<any> {
-    return await this.usersService.create(userData);
+  async register(userData: SignUpDto): Promise<{ access_token: string }> {
+    const user = await this.usersService.create(userData);
+    const payload = { username: user.username, sub: user._id };
+    return {
+      access_token: this.jwtService.sign(payload),
+    };
   }
 
-  async login(user: any): Promise<any> {
-    const payload = { username: user.username, sub: user.userId };
+  async login(userData: User & Document): Promise<{ access_token: string }> {
+    const payload = { username: userData.username, sub: userData._id };
     return {
       access_token: this.jwtService.sign(payload),
     };

@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { UsersRepository } from '../db/users.repository';
 import { User } from '../db/users.schema';
 import * as bcrypt from 'bcrypt';
+import { Document } from 'mongoose';
 
 @Injectable()
 export class UsersService {
@@ -36,7 +37,7 @@ export class UsersService {
     return this.usersRepository.findOne({ _id: userId });
   }
 
-  async findByUsername(username: string): Promise<User> {
+  async findByUsername(username: string): Promise<User & Document> {
     return this.usersRepository.findOne({ username });
   }
 
