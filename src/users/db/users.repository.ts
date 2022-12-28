@@ -1,16 +1,35 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { FilterQuery, Model, Document } from 'mongoose';
-
+import { FilterQuery, Model, Types } from 'mongoose';
 import { User, UserDocument } from './users.schema';
+
+type limitedUserDataType = {
+  sub: string;
+  username: string;
+  email: string;
+  dateOfRegistration: string;
+};
 
 @Injectable()
 export class UsersRepository {
   constructor(@InjectModel(User.name) private userModel: Model<UserDocument>) {}
 
-  async createOne(user: User): Promise<User & Document> {
+  async createOne(
+    user: User,
+    limitedOutput = true,
+  ): Promise<UserDocument | limitedUserDataType> {
     const newUser = new this.userModel(user);
-    return newUser.save();
+    await newUser.save();
+    if (limitedOutput && newUser) {
+      return {
+        sub: newUser._id.toString(),
+        username: newUser.username,
+        email: newUser.email,
+        dateOfRegistration: newUser.dateOfRegistration,
+      };
+    } else {
+      return newUser;
+    }
   }
 
   async deleteOne(userId: string) {
@@ -19,20 +38,63 @@ export class UsersRepository {
 
   async find(
     usersFilterQuery: FilterQuery<User>,
-  ): Promise<(User & Document)[]> {
-    return this.userModel.find(usersFilterQuery);
+    limitedOutput = true,
+  ): Promise<UserDocument[] | limitedUserDataType[]> {
+    const usersCollection = await this.userModel.find(usersFilterQuery);
+    if (limitedOutput && usersCollection) {
+      const filteredCollection = [];
+      for (const user of usersCollection) {
+        filteredCollection.push({
+          sub: user._id.toString(),
+          username: user.username,
+          email: user.email,
+          dateOfRegistration: user.dateOfRegistration,
+        });
+      }
+      return filteredCollection;
+    } else {
+      return usersCollection;
+    }
   }
 
-  async findOne(userFilterQuery: FilterQuery<User>): Promise<User & Document> {
-    return this.userModel.findOne(userFilterQuery);
+  async findOne(
+    userFilterQuery: FilterQuery<User>,
+    limitedOutput = true,
+  ): Promise<UserDocument | limitedUserDataType> {
+    const newUser = await this.userModel.findOne(userFilterQuery);
+    if (newUser && limitedOutput) {
+      return {
+        sub: newUser._id.toString(),
+        username: newUser.username,
+        email: newUser.email,
+        dateOfRegistration: newUser.dateOfRegistration,
+      };
+    } else {
+      return newUser;
+    }
   }
 
   async findOneAndUpdate(
     userFilterQuery: FilterQuery<User>,
     user: Partial<User>,
-  ): Promise<User & Document> {
-    return this.userModel.findOneAndUpdate(userFilterQuery, user, {
-      new: true,
-    });
+    limitedOutput = true,
+  ): Promise<UserDocument | limitedUserDataType> {
+    const newUser = await this.userModel.findOneAndUpdate(
+      userFilterQuery,
+      user,
+      {
+        new: true,
+      },
+    );
+    if (newUser && limitedOutput) {
+      return {
+        sub: newUser._id.toString(),
+        username: newUser.username,
+        email: newUser.email,
+        dateOfRegistration: newUser.dateOfRegistration,
+      };
+    } else {
+      return newUser;
+    }
   }
 }

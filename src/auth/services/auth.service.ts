@@ -3,7 +3,7 @@ import { UsersService } from 'src/users/services/users.service';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
 import { SignUpDto } from '../dtos/signUp.dto';
-import { User } from 'src/users/db/users.schema';
+import { User, UserDocument } from 'src/users/db/users.schema';
 import { Document } from 'mongoose';
 import { jwtPayload } from '../jwtPayload';
 import { Role } from '../roles';
@@ -16,19 +16,24 @@ export class AuthService {
   ) {}
 
   async validateUser(username: string, password: string): Promise<any> {
-    const user = await this.usersService.findByUsername(username);
+    const user = (await this.usersService.findByUsername(
+      username,
+      false,
+    )) as UserDocument;
     if (user && bcrypt.compare(password, user.password)) {
-      const { password, ...result } = user;
-      return result;
+      return user;
     }
     return null;
   }
 
   async register(userData: SignUpDto): Promise<{ access_token: string }> {
-    const user = await this.usersService.create(userData);
+    const user = (await this.usersService.create(
+      userData,
+      false,
+    )) as UserDocument;
     const payload: jwtPayload = {
       username: user.username,
-      sub: user._id,
+      sub: user._id.toString(),
       roles: user.roles as unknown as Role[],
     };
     return {
