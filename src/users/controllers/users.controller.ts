@@ -34,10 +34,11 @@ export class UsersController {
     @Request() req,
     @Body() updateUserDto: UpdateMyAccountDto,
   ) {
-    return await this.usersService.edit({
-      id: req.user.sub,
-      ...updateUserDto,
-    });
+    return await this.usersService.edit(
+      req.user.sub,
+      { ...updateUserDto },
+      { limitedOutput: true, sendEmail: true },
+    );
   }
 
   @UseGuards(RolesGuard)
@@ -52,7 +53,11 @@ export class UsersController {
   @Roles('Admin')
   @Patch('update-user/:id')
   updateUser(@Body() updateUserDto: UpdateUserDto, @Param('id') id: string) {
-    return this.usersService.edit({ id, ...updateUserDto });
+    return this.usersService.edit(
+      id,
+      { ...updateUserDto },
+      { limitedOutput: true, sendEmail: true },
+    );
   }
 
   @UseGuards(RolesGuard)

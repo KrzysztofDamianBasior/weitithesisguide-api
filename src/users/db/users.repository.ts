@@ -3,11 +3,12 @@ import { InjectModel } from '@nestjs/mongoose';
 import { FilterQuery, Model, Types } from 'mongoose';
 import { User, UserDocument } from './users.schema';
 
-type limitedUserDataType = {
+export type limitedUserDataType = {
   sub: string;
   username: string;
   email: string;
   dateOfRegistration: string;
+  roles: string[];
 };
 
 @Injectable()
@@ -26,6 +27,7 @@ export class UsersRepository {
         username: newUser.username,
         email: newUser.email,
         dateOfRegistration: newUser.dateOfRegistration,
+        roles: newUser.roles,
       };
     } else {
       return newUser;
@@ -68,6 +70,7 @@ export class UsersRepository {
         username: newUser.username,
         email: newUser.email,
         dateOfRegistration: newUser.dateOfRegistration,
+        roles: newUser.roles,
       };
     } else {
       return newUser;
@@ -92,6 +95,7 @@ export class UsersRepository {
         username: newUser.username,
         email: newUser.email,
         dateOfRegistration: newUser.dateOfRegistration,
+        roles: newUser.roles,
       };
     } else {
       return newUser;
