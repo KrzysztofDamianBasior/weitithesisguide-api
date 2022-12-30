@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { FilterQuery, Model, Types } from 'mongoose';
+import { FilterQuery, Model } from 'mongoose';
 import { User, UserDocument } from './users.schema';
 
 export type limitedUserDataType = {
