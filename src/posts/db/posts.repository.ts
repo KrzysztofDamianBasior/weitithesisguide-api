@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { FilterQuery, Model } from 'mongoose';
+import mongoose, { FilterQuery, Model } from 'mongoose';
 import { Answer, AnswerDocument, Post, PostDocument } from './posts.schema';
 import { UsersRepository } from 'src/users/db/users.repository';
 
@@ -29,6 +29,54 @@ export class PostsRepository {
 
   async findPost(postFilterQuery: FilterQuery<Post>): Promise<PostDocument> {
     return await this.postModel.findOne(postFilterQuery);
+  }
+
+  async toggleLikePost(postId: string, userId: string) {
+    const post = await this.postModel.findById(postId);
+    const hasUser = post.favoritedBy.map((id) => id.toString()).indexOf(userId);
+    if (hasUser >= 0) {
+      return this.postModel.findByIdAndUpdate(
+        postId,
+        {
+          $pull: { favoritedBy: new mongoose.Types.ObjectId(userId) },
+          $inc: { favoriteCount: -1 },
+        },
+        { new: true },
+      );
+    } else {
+      return this.postModel.findByIdAndUpdate(
+        postId,
+        {
+          $push: { favoritedBy: new mongoose.Types.ObjectId(userId) },
+          $inc: { favoriteCount: 1 },
+        },
+        { new: true },
+      );
+    }
+  }
+
+  async toggleLikeAnswer(postId: string, answerId: string, userId: string) {
+    const post = await this.postModel.findById(postId);
+    const answers = post.answers as AnswerDocument[];
+    const selectedAnswer = answers.findIndex(
+      (answer) => answer._id.toString() === answerId,
+    );
+
+    const hasUser = post.answers[selectedAnswer].favoritedBy
+      .map((id) => id.toString())
+      .indexOf(userId);
+
+    if (hasUser >= 0) {
+      post.answers[selectedAnswer].favoritedBy.splice(hasUser, 1);
+      post.answers[selectedAnswer].favoriteCount -= 1;
+    } else {
+      post.answers[selectedAnswer].favoritedBy.push(
+        new mongoose.Types.ObjectId(userId),
+      );
+      post.answers[selectedAnswer].favoriteCount += 1;
+    }
+
+    return post.save();
   }
 
   async findPostAndUpdate(
