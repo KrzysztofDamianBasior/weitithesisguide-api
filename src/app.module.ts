@@ -6,10 +6,11 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
 import { PostsModule } from './posts/posts.module';
+import { validate } from './env.validation';
 
 @Module({
   imports: [
-    ConfigModule.forRoot(),
+    ConfigModule.forRoot({ isGlobal: true, validate }),
     MongooseModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -25,3 +26,37 @@ import { PostsModule } from './posts/posts.module';
   providers: [AppService],
 })
 export class AppModule {}
+
+// kolekcje: users, posts, notes
+
+// users: {
+// 	username: string,
+// 	email: string,
+// 	password: string,
+// 	resetLink: string,
+// 	activityHistory: Schema.ObjectId[]
+// }
+// posts: {
+// 	creator: Schema.ObjectId,
+// 	title: string,
+// 	question: string,
+// 	favouritedBy: Schema.ObjectId[]
+// 	favoritedCount: number
+// 	updatedAt: Date
+// 	createdAt: Date
+
+// 	answers: {
+// 		author: Schema.ObjectId,
+// 		content: String
+// 		favouritedBy: Schema.ObjectId
+// 		favoritedCount: number
+// 		updatedAt: Date
+// 		createdAt: Date
+// 	}
+// }
+// notes: {
+// 	author: string
+// 	content: string
+// 	updatedAt: Date
+// 	createdAt: Date
+// }
