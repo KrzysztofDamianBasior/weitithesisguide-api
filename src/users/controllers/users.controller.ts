@@ -7,6 +7,7 @@ import {
   UseGuards,
   Delete,
   Param,
+  Query,
 } from '@nestjs/common';
 import { UsersService } from '../services/users.service';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
@@ -34,11 +35,7 @@ export class UsersController {
     @Request() req,
     @Body() updateUserDto: UpdateMyAccountDto,
   ) {
-    return await this.usersService.edit(
-      req.user.sub,
-      { ...updateUserDto },
-      { limitedOutput: true, sendEmail: true },
-    );
+    return await this.usersService.edit(req.user.sub, { ...updateUserDto });
   }
 
   @UseGuards(RolesGuard)
@@ -51,29 +48,36 @@ export class UsersController {
   @UseGuards(RolesGuard)
   @UseGuards(JwtAuthGuard)
   @Roles('Admin')
-  @Patch('update-user/:id')
-  updateUser(@Body() updateUserDto: UpdateUserDto, @Param('id') id: string) {
-    return this.usersService.edit(
-      id,
-      { ...updateUserDto },
-      { limitedOutput: true, sendEmail: true },
-    );
+  @Patch(':id')
+  update(@Body() updateUserDto: UpdateUserDto, @Param('id') id: string) {
+    //return this.usersService.update(id, updateUserDto)
+    return this.usersService.edit(id, { ...updateUserDto });
   }
 
   @UseGuards(RolesGuard)
   @UseGuards(JwtAuthGuard)
   @Roles('Admin')
-  @Delete('delete-user/:id')
-  deleteUser(@Param('id') id: string) {
+  @Delete(':id')
+  remove(@Param('id') id: string) {
     return this.usersService.remove(id);
   }
 
   @UseGuards(RolesGuard)
   @UseGuards(JwtAuthGuard)
   @Roles('Admin')
-  @Get('user/:id')
-  getUser(@Param('id') id: string) {
+  @Get(':id')
+  findOne(@Param('id') id: string) {
     return this.usersService.findById(id);
+    //findOne(id)
+  }
+
+  @UseGuards(RolesGuard)
+  @UseGuards(JwtAuthGuard)
+  @Roles('Admin')
+  @Get('?')
+  findAll(@Query('offset') offset: number, @Query('per_page') perPage: number) {
+    //users?offset=1&per_page=3
+    return this.usersService.all({ offset, perPage });
   }
 
   @UseGuards(RolesGuard)

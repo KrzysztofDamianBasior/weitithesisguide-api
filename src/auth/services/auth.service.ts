@@ -12,7 +12,6 @@ import { Document } from 'mongoose';
 import { jwtPayload } from '../jwtPayload';
 import { Role } from '../roles';
 import { SendgridService } from './sendgrid.service';
-import { limitedUserDataType } from 'src/users/db/users.repository';
 import { ResetPasswordDto } from '../dtos/resetPassword.dto';
 import { ForgotPasswordDto } from '../dtos/forgotPassword.dto';
 import { UsersService } from 'src/users/services/users.service';
@@ -27,33 +26,33 @@ export class AuthService {
   ) {}
 
   async validateUser(username: string, password: string): Promise<any> {
-    const user = (await this.usersService.findByUsername(
+    const userPassword = await this.usersService.findPasswordByUsername(
       username,
-      false,
-    )) as UserDocument;
-    if (user && bcrypt.compare(password, user.password)) {
-      return user;
+    );
+
+    if (userPassword && bcrypt.compare(password, userPassword)) {
+      return this.usersService.findByUsername(username);
     }
     return null;
   }
 
   async register(userData: SignUpDto): Promise<{ access_token: string }> {
-    const user = (await this.usersService.create(
-      { username: userData.username, password: userData.password },
-      false,
-    )) as UserDocument;
-
+    const user = await this.usersService.create({
+      username: userData.username,
+      password: userData.password,
+    });
     if (userData.email) {
-      this.sendActivateLink({
-        id: user._id.toString(),
+      const resetLink = await this.sendActivateLink({
+        id: user.sub.toString(),
         username: user.username,
         email: userData.email,
       });
+      this.usersService.updateResetLink({ resetLink, id: user.sub });
     }
 
     const payload: jwtPayload = {
       username: user.username,
-      sub: user._id.toString(),
+      sub: user.sub.toString(),
       roles: user.roles as unknown as Role[],
     };
     return {
@@ -75,11 +74,21 @@ export class AuthService {
       sub: id,
     };
     const activateEmailToken = await this.jwtService.sign(activateEmailPayload);
-    return this.sendgridService.activateLink({
+    this.sendgridService.activateLink({
       username,
       email,
       token: activateEmailToken,
     });
+    return activateEmailToken;
+  }
+
+  async verify(token: string) {
+    const decoded = this.jwtService.verify(token);
+    const user = this.usersService.findById(decoded.sub);
+    if (!user) {
+      throw new Error('Unable to get the user from decoded token.');
+    }
+    return user;
   }
 
   async login(userData: User & Document): Promise<{ access_token: string }> {
@@ -98,29 +107,24 @@ export class AuthService {
     const { email, sub }: { email: string; sub: string } =
       await this.jwtService.verify(token);
     if (email && sub) {
-      return this.usersService.edit(
-        sub,
-        {
-          email,
-          resetLink: '',
-        },
-        { limitedOutput: true, sendEmail: false },
-      );
+      return this.usersService.updateEmailAndRemoveResetLink({
+        email,
+        resetLink: token,
+      });
     } else {
       throw new BadRequestException('Bad token');
     }
   }
+
   async forgotPassword({ email }: ForgotPasswordDto) {
-    const user = (await this.usersService.findByEmail(
-      email,
-      true,
-    )) as limitedUserDataType;
+    const user = await this.usersService.findByEmail(email);
     const payload = {
       id: user.sub,
       email: user.email,
       username: user.username,
     };
     const token = await this.jwtService.sign(payload);
+    this.usersService.updateResetLink({ id: user.sub, resetLink: token });
     return this.sendgridService.forgetPassword({
       username: payload.username,
       email: payload.email,
@@ -132,11 +136,10 @@ export class AuthService {
     const { username, id }: { username: string; email: string; id: string } =
       await this.jwtService.verify(token);
 
-    const user = await this.usersService.edit(
-      id,
-      { password },
-      { limitedOutput: true },
-    );
+    const user = await this.usersService.updatePasswordAndRemoveResetLink({
+      password,
+      resetLink: token,
+    });
     const payload = {
       username,
       sub: id,

@@ -8,12 +8,12 @@ import { Answer, Post } from '../db/posts.schema';
 export class PostsService {
   constructor(private readonly postsRepository: PostsRepository) {}
 
-  async getPosts() {
+  async findAllPosts() {
     return this.postsRepository.findPosts({});
   }
 
-  async getPost(postId: string) {
-    return this.postsRepository.findPost({ _id: postId });
+  async findOnePost(id: string) {
+    return this.postsRepository.findPost({ _id: id });
   }
 
   async createPost(authorId: string, createPostDto: CreatePostDto) {
@@ -45,11 +45,11 @@ export class PostsService {
     return this.postsRepository.toggleLikeAnswer(postId, answerId, userId);
   }
 
-  async deletePost(postId: string) {
+  async removePost(postId: string) {
     return this.postsRepository.deletePost(postId);
   }
 
-  async deleteAnswer(postId: string, answerId: string) {
+  async removeAnswer(postId: string, answerId: string) {
     return this.postsRepository.deleteAnswer(postId, answerId);
   }
 }

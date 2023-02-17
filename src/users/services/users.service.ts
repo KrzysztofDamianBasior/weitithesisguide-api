@@ -13,59 +13,103 @@ export class UsersService {
     private readonly authService: AuthService,
   ) {}
 
-  async create(
-    {
-      username,
-      password,
-    }: {
-      username: string;
-      password: string;
-    },
-    limitedOutput = true,
-  ) {
+  async create({
+    username,
+    password,
+    email,
+  }: {
+    username: string;
+    password: string;
+    email?: string;
+  }) {
     const salt = await bcrypt.genSalt(10);
     const user: User = {
       username,
       email: '',
       password: await bcrypt.hash(password, salt),
       resetLink: '',
-      dateOfRegistration: new Date().toString(),
       roles: ['User'],
     };
+    if (email && email.length > 3) {
+      user.email = 'waiting for verification';
+      const newUser = await this.usersRepository.createOne(user);
+      this.authService.sendActivateLink({ id: newUser.sub, username, email });
+      return newUser;
+    } else {
+      return await this.usersRepository.createOne(user);
+    }
+  }
 
-    return this.usersRepository.createOne(user, limitedOutput);
+  async findPasswordByUsername(username: string) {
+    return this.usersRepository.findPasswordByUsername(username);
   }
 
   async remove(userId: string) {
-    return this.usersRepository.deleteOne(userId);
+    return this.usersRepository.deleteById(userId);
   }
 
-  async grantAdminPermissions(id, limitedOutput = true) {
-    return this.usersRepository.findOneAndUpdate(
-      { _id: id },
-      { roles: ['User', 'Admin'] },
-      limitedOutput,
-    );
+  async grantAdminPermissions(id) {
+    return this.usersRepository.updateRoles({ id, roles: ['User', 'Admin'] });
   }
 
-  async findById(userId: string, limitedOutput = true) {
-    return this.usersRepository.findOne({ _id: userId }, limitedOutput);
+  async findById(id: string) {
+    return this.usersRepository.findOneById(id);
   }
 
-  async findByUsername(username: string, limitedOutput = true) {
-    return this.usersRepository.findOne({ username }, limitedOutput);
+  async findByUsername(username: string) {
+    return this.usersRepository.findOne({ username });
   }
 
-  async findByEmail(email: string, limitedOutput = true) {
-    return this.usersRepository.findOne({ email }, limitedOutput);
+  async findByEmail(email: string) {
+    return this.usersRepository.findOne({ email });
   }
 
-  async findByResetLink(resetLink: string, limitedOutput = true) {
-    return this.usersRepository.find({ resetLink }, limitedOutput);
+  async findByResetLink(resetLink: string) {
+    return this.usersRepository.findOne({ resetLink });
   }
 
-  async all(limitedOutput = true) {
-    return this.usersRepository.find({}, limitedOutput);
+  async all({ offset, perPage }: { offset: number; perPage: number }) {
+    return this.usersRepository.find({ usersFilterQuery: {}, offset, perPage });
+  }
+  async updateEmailAndRemoveResetLink({
+    resetLink,
+    email,
+  }: {
+    resetLink: string;
+    email: string;
+  }) {
+    return this.usersRepository.updateEmailAndRemoveResetLink({
+      email,
+      resetLink,
+    });
+  }
+  async updatePasswordAndRemoveResetLink({
+    resetLink,
+    password,
+  }: {
+    resetLink: string;
+    password: string;
+  }) {
+    return this.usersRepository.updatePasswordAndRemoveResetLink({
+      password,
+      resetLink,
+    });
+  }
+
+  async updateResetLink({ resetLink, id }: { resetLink: string; id: string }) {
+    return this.usersRepository.updateResetLink({ id, resetLink });
+  }
+
+  async updatePassword({ id, password }: { id: string; password: string }) {
+    return this.usersRepository.updatePassword({ id, password });
+  }
+
+  async updateUsername({ id, username }: { id: string; username: string }) {
+    if (!this.usersRepository.isUsernameExist(username)) {
+      this.usersRepository.updateUsername({ id, username });
+    } else {
+      return 'this username is already taken';
+    }
   }
 
   async edit(
@@ -81,23 +125,18 @@ export class UsersService {
       password?: string;
       resetLink?: string;
     },
-    { limitedOutput = true, sendEmail = false },
   ) {
     const update: { [key: string]: unknown } = {};
     if (username) update.username = username;
     if (email) {
       update.email = email;
-      if (sendEmail) {
-        this.authService.sendActivateLink({ id, username, email });
-      }
     }
     if (password) update.password = username;
     if (resetLink || resetLink === '') update.resetLink = resetLink;
 
-    return this.usersRepository.findOneAndUpdate(
-      { _id: id },
-      update,
-      limitedOutput,
-    );
+    return this.usersRepository.forceUpdate({
+      user: { id: id },
+      userFilterQuery: update,
+    });
   }
 }

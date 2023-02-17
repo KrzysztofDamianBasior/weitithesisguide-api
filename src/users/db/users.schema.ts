@@ -3,25 +3,28 @@ import { HydratedDocument } from 'mongoose';
 
 export type UserDocument = HydratedDocument<User>;
 
-@Schema()
+@Schema({ timestamps: true })
 export class User {
-  @Prop({ type: String, required: true, unique: true })
+  @Prop({ type: String, required: true, unique: true, minlength: 5 })
   username: string;
-
-  @Prop({ type: String, required: false })
-  email: string;
-
-  @Prop({ type: String, required: true })
-  dateOfRegistration: string;
 
   @Prop({ type: String, required: true })
   password: string;
 
-  @Prop({ type: String, required: false })
+  @Prop({ type: String, default: '' })
+  email: string;
+
+  @Prop({ type: String, default: '' })
   resetLink: string;
 
   @Prop({ type: [String], required: true })
   roles: string[];
+
+  @Prop()
+  createdAt?: Date;
+
+  @Prop()
+  updatedAt?: Date;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

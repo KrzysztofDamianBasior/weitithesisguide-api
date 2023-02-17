@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import mongoose, { FilterQuery, Model } from 'mongoose';
-import { Answer, AnswerDocument, Post, PostDocument } from './posts.schema';
+import mongoose, { FilterQuery, Model, Types } from 'mongoose';
+import { Post, PostDocument } from './post.schema';
 import { UsersRepository } from 'src/users/db/users.repository';
 
 @Injectable()
@@ -11,27 +11,46 @@ export class PostsRepository {
     private readonly usersRepository: UsersRepository,
   ) {}
 
-  async createPost(post: Post): Promise<PostDocument> {
-    const newPost = new this.postModel(post);
+  async create({
+    author,
+    content,
+  }: {
+    author: string | Types.ObjectId;
+    content: string;
+  }): Promise<PostDocument> {
+    const payload: Post = {
+      author,
+      content,
+      comments: [],
+      favoriteCount: 0,
+      favoritedBy: [],
+    };
+    const newPost = new this.postModel(payload);
     await newPost.save();
     return newPost;
   }
 
-  async deletePost(postId: string) {
-    return this.postModel.deleteOne({ _id: postId });
+  async remove(_id: string | Types.ObjectId) {
+    return this.postModel.deleteOne({ _id });
   }
 
-  async findPosts(
-    postsFilterQuery: FilterQuery<Post>,
-  ): Promise<PostDocument[]> {
+  async find(postsFilterQuery: FilterQuery<Post>): Promise<PostDocument[]> {
     return this.postModel.find(postsFilterQuery);
   }
 
-  async findPost(postFilterQuery: FilterQuery<Post>): Promise<PostDocument> {
-    return await this.postModel.findOne(postFilterQuery);
+  async findAll({ offset, perPage }: { offset: number; perPage: number }) {
+    return this.postModel
+      .find()
+      .skip(offset)
+      .limit(perPage)
+      .sort({ createdAt: 'desc' });
   }
 
-  async toggleLikePost(postId: string, userId: string) {
+  async findOne(_id: string | Types.ObjectId): Promise<PostDocument> {
+    return await this.postModel.findById(_id);
+  }
+
+  async toggleLike({ postId, userId }: { postId: string; userId: string }) {
     const post = await this.postModel.findById(postId);
     const hasUser = post.favoritedBy.map((id) => id.toString()).indexOf(userId);
     if (hasUser >= 0) {
@@ -55,31 +74,7 @@ export class PostsRepository {
     }
   }
 
-  async toggleLikeAnswer(postId: string, answerId: string, userId: string) {
-    const post = await this.postModel.findById(postId);
-    const answers = post.answers as AnswerDocument[];
-    const selectedAnswer = answers.findIndex(
-      (answer) => answer._id.toString() === answerId,
-    );
-
-    const hasUser = post.answers[selectedAnswer].favoritedBy
-      .map((id) => id.toString())
-      .indexOf(userId);
-
-    if (hasUser >= 0) {
-      post.answers[selectedAnswer].favoritedBy.splice(hasUser, 1);
-      post.answers[selectedAnswer].favoriteCount -= 1;
-    } else {
-      post.answers[selectedAnswer].favoritedBy.push(
-        new mongoose.Types.ObjectId(userId),
-      );
-      post.answers[selectedAnswer].favoriteCount += 1;
-    }
-
-    return post.save();
-  }
-
-  async findPostAndUpdate(
+  async update(
     postFilterQuery: FilterQuery<Post>,
     post: Partial<Post>,
   ): Promise<PostDocument> {
@@ -88,29 +83,32 @@ export class PostsRepository {
     });
   }
 
-  async createAnswer(postId: string, answer: Answer) {
-    const post = await this.postModel.findById(postId);
-    post.answers.push(answer);
+  async updateContent({
+    _id,
+    content,
+  }: {
+    _id: string | Types.ObjectId;
+    content: string;
+  }) {
+    const post = await this.postModel.findById(_id);
+    post.content = content;
     return post.save();
   }
 
-  async deleteAnswer(postId: string, answerId: string) {
+  async findUsersWhoLikePost({
+    postId,
+    offset,
+    perPage,
+  }: {
+    postId: string;
+    offset: number;
+    perPage: number;
+  }) {
     const post = await this.postModel.findById(postId);
-    const answers = post.answers as AnswerDocument[];
-    answers.filter((answer) => answer._id.toString() === answerId);
-    return post.save();
-  }
-
-  async findAnswer(postId: string, answerId: string) {
-    const post = await this.postModel.findById(postId);
-    const answers = post.answers as AnswerDocument[];
-    return answers.find((answer) => answer._id.toString() === answerId);
-  }
-
-  async findUsersWhoLikePost(postId: string) {
-    const post = await this.postModel.findById(postId);
-    return this.usersRepository.find({
-      _id: { $in: post.favoritedBy },
+    return this.usersRepository.findUsersPublicDataByTheirIds({
+      ids: post.favoritedBy.map((id) => id.toString()),
+      offset,
+      perPage,
     });
   }
 
@@ -118,28 +116,6 @@ export class PostsRepository {
     const post = await this.postModel.findById(postId);
     return this.usersRepository.findOne({
       _id: post.author,
-    });
-  }
-
-  async findUsersWhoLikeAnswer(postId: string, answerId: string) {
-    const post = await this.postModel.findById(postId);
-    const answers = post.answers as AnswerDocument[];
-    const selectedAnswer = answers.find(
-      (answer) => answer._id.toString() === answerId,
-    );
-    return this.usersRepository.find({
-      _id: { $in: selectedAnswer.favoritedBy },
-    });
-  }
-
-  async findAnswerAuthor(postId: string, answerId: string) {
-    const post = await this.postModel.findById(postId);
-    const answers = post.answers as AnswerDocument[];
-    const selectedAnswer = answers.find(
-      (answer) => answer._id.toString() === answerId,
-    );
-    return this.usersRepository.find({
-      _id: selectedAnswer.author,
     });
   }
 }
