@@ -7,7 +7,7 @@ import {
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
 import { SignUpDto } from '../dtos/signUp.dto';
-import { User, UserDocument } from 'src/users/db/users.schema';
+import { User } from 'src/users/db/users.schema';
 import { Document } from 'mongoose';
 import { jwtPayload } from '../jwtPayload';
 import { Role } from '../roles';
@@ -39,7 +39,7 @@ export class AuthService {
   async register(userData: SignUpDto): Promise<{ access_token: string }> {
     const user = await this.usersService.create({
       username: userData.username,
-      password: userData.password,
+      plainTextPassword: userData.password,
     });
     if (userData.email) {
       const resetLink = await this.sendActivateLink({

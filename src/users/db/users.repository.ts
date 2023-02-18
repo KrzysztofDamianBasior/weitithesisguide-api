@@ -57,10 +57,10 @@ export class UsersRepository {
     return privateData;
   }
 
-  async find({
+  async findMany({
     offset,
     perPage,
-    usersFilterQuery,
+    usersFilterQuery = {},
   }: {
     usersFilterQuery: FilterQuery<User>;
     offset: number;
@@ -132,7 +132,7 @@ export class UsersRepository {
   }): Promise<publicUserData[]> {
     const usersCollection = await this.userModel
       .find({ _id: { $in: ids } })
-      .select('_id username email')
+      .select('_id username roles')
       .skip(offset)
       .limit(perPage)
       .sort({ createdAt: 'desc' });
@@ -148,7 +148,7 @@ export class UsersRepository {
   }
 
   async findUserPublicDataById(id: string | Types.ObjectId) {
-    const user = await this.userModel.findById(id).select('_id username');
+    const user = await this.userModel.findById(id).select('_id username roles');
     const userData: publicUserData = {
       sub: user._id.toString(),
       username: user.username,
@@ -156,8 +156,11 @@ export class UsersRepository {
     };
     return userData;
   }
+
   async findUserPublicAndProtectedDataById(id: string | Types.ObjectId) {
-    const user = await this.userModel.findById(id).select('_id username');
+    const user = await this.userModel
+      .findById(id)
+      .select('_id username email roles createdAt updatedAt');
     const userData: publicUserData & protectedUserData = {
       sub: user._id.toString(),
       username: user.username,
@@ -175,11 +178,19 @@ export class UsersRepository {
   }: {
     id: string | Types.ObjectId;
     resetLink: string;
-  }) {
+  }): Promise<publicUserData & protectedUserData> {
     const user = await this.userModel.findById(id);
     user.resetLink = resetLink;
     await user.save();
-    return { message: 'resetLink field is set' };
+    const userData: publicUserData & protectedUserData = {
+      sub: user._id.toString(),
+      username: user.username,
+      email: user.email,
+      roles: user.roles,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+    };
+    return userData;
   }
 
   async updateEmailAndRemoveResetLink({
@@ -188,12 +199,20 @@ export class UsersRepository {
   }: {
     resetLink: string;
     email: string;
-  }) {
+  }): Promise<publicUserData & protectedUserData> {
     const user = await this.userModel.findOne({ resetLink });
     user.email = email;
     user.resetLink = '';
     await user.save();
-    return { email: user.email };
+    const userData: publicUserData & protectedUserData = {
+      sub: user._id.toString(),
+      username: user.username,
+      email: user.email,
+      roles: user.roles,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+    };
+    return userData;
   }
 
   async updatePasswordAndRemoveResetLink({
@@ -224,11 +243,19 @@ export class UsersRepository {
   }: {
     id: string | Types.ObjectId;
     username: string;
-  }) {
+  }): Promise<publicUserData & protectedUserData> {
     const user = await this.userModel.findById(id);
     user.username = username;
     await user.save();
-    return { username: username };
+    const userData: publicUserData & protectedUserData = {
+      sub: user._id.toString(),
+      username: user.username,
+      email: user.email,
+      roles: user.roles,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+    };
+    return userData;
   }
 
   async updatePassword({
@@ -237,11 +264,19 @@ export class UsersRepository {
   }: {
     id: string | Types.ObjectId;
     password: string;
-  }) {
+  }): Promise<publicUserData & protectedUserData> {
     const user = await this.userModel.findById(id);
     user.password = password;
     await user.save();
-    return 'password updated';
+    const userData: publicUserData & protectedUserData = {
+      sub: user._id.toString(),
+      username: user.username,
+      email: user.email,
+      roles: user.roles,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+    };
+    return userData;
   }
 
   async updateRoles({
@@ -250,11 +285,19 @@ export class UsersRepository {
   }: {
     id: string | Types.ObjectId;
     roles: Role[];
-  }) {
+  }): Promise<publicUserData & protectedUserData> {
     const user = await this.userModel.findById(id);
     user.roles = roles;
     await user.save();
-    return { roles: user.roles };
+    const userData: publicUserData & protectedUserData = {
+      sub: user._id.toString(),
+      username: user.username,
+      email: user.email,
+      roles: user.roles,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+    };
+    return userData;
   }
 
   async forceUpdate({

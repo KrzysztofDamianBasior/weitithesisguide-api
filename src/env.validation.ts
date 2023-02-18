@@ -15,8 +15,20 @@ export class EnvironmentVariables {
   @IsNumber()
   PORT: number;
 
+  @IsNumber()
+  SALT_LENGTH: number;
+
   @IsString()
   JWT_SECRET: number;
+
+  @IsString()
+  MONGODB_URI: string;
+
+  @IsString()
+  SEND_GRID_KEY: string;
+
+  @IsString()
+  SENDER_EMAIL: string;
 }
 
 export function validate(config: Record<string, unknown>) {

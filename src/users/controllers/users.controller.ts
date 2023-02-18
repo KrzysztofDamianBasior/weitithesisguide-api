@@ -11,10 +11,11 @@ import {
 } from '@nestjs/common';
 import { UsersService } from '../services/users.service';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
-import { UpdateUserDto } from '../dtos/updateUserDto';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { Roles } from 'src/auth/roles';
-import { UpdateMyAccountDto } from '../dtos/updateMyAccountDto';
+import { UpdateUsernameDto } from '../dtos/updateUsernameDto';
+import { UpdateEmailDto } from '../dtos/updateEmailDto';
+import { UpdatePasswordDto } from '../dtos/updatePasswordDto';
 
 @Roles('User')
 @Controller('users')
@@ -30,12 +31,39 @@ export class UsersController {
 
   @UseGuards(RolesGuard)
   @UseGuards(JwtAuthGuard)
-  @Patch('update-my-account')
-  async updateMyAccount(
+  @Patch('update-my-username')
+  async updateMyUsername(
     @Request() req,
-    @Body() updateUserDto: UpdateMyAccountDto,
+    @Body() updateUsernameDto: UpdateUsernameDto,
   ) {
-    return await this.usersService.edit(req.user.sub, { ...updateUserDto });
+    return await this.usersService.updateUsername({
+      id: req.user.sub,
+      username: updateUsernameDto.username,
+    });
+  }
+
+  @UseGuards(RolesGuard)
+  @UseGuards(JwtAuthGuard)
+  @Patch('update-my-email')
+  async updateMyEmail(@Request() req, @Body() updateEmailDto: UpdateEmailDto) {
+    return await this.usersService.sendActivateLinkAndSetResetLink({
+      sub: req.user.sub,
+      email: updateEmailDto.email,
+      username: req.user.username,
+    });
+  }
+
+  @UseGuards(RolesGuard)
+  @UseGuards(JwtAuthGuard)
+  @Patch('update-my-password')
+  async updateMyPassword(
+    @Request() req,
+    @Body() updatePasswordDto: UpdatePasswordDto,
+  ) {
+    return await this.usersService.updatePassword({
+      id: req.user.sub,
+      plainTextPassword: updatePasswordDto.password,
+    });
   }
 
   @UseGuards(RolesGuard)
@@ -43,15 +71,6 @@ export class UsersController {
   @Delete('delete-my-account')
   deleteMyAccount(@Request() req) {
     return this.usersService.remove(req.user.sub);
-  }
-
-  @UseGuards(RolesGuard)
-  @UseGuards(JwtAuthGuard)
-  @Roles('Admin')
-  @Patch(':id')
-  update(@Body() updateUserDto: UpdateUserDto, @Param('id') id: string) {
-    //return this.usersService.update(id, updateUserDto)
-    return this.usersService.edit(id, { ...updateUserDto });
   }
 
   @UseGuards(RolesGuard)
@@ -68,7 +87,6 @@ export class UsersController {
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.usersService.findById(id);
-    //findOne(id)
   }
 
   @UseGuards(RolesGuard)

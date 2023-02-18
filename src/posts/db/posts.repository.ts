@@ -12,14 +12,14 @@ export class PostsRepository {
   ) {}
 
   async create({
-    author,
+    authorId,
     content,
   }: {
-    author: string | Types.ObjectId;
+    authorId: string | Types.ObjectId;
     content: string;
   }): Promise<PostDocument> {
     const payload: Post = {
-      author,
+      author: authorId,
       content,
       comments: [],
       favoriteCount: 0,
@@ -30,8 +30,8 @@ export class PostsRepository {
     return newPost;
   }
 
-  async remove(_id: string | Types.ObjectId) {
-    return this.postModel.deleteOne({ _id });
+  async remove(id: string | Types.ObjectId) {
+    return this.postModel.deleteOne({ id });
   }
 
   async find(postsFilterQuery: FilterQuery<Post>): Promise<PostDocument[]> {
@@ -84,13 +84,13 @@ export class PostsRepository {
   }
 
   async updateContent({
-    _id,
+    id,
     content,
   }: {
-    _id: string | Types.ObjectId;
+    id: string | Types.ObjectId;
     content: string;
   }) {
-    const post = await this.postModel.findById(_id);
+    const post = await this.postModel.findById(id);
     post.content = content;
     return post.save();
   }

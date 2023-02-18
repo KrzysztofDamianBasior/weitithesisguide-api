@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import mongoose, { FilterQuery, Model, Types } from 'mongoose';
+import mongoose, { Model, Types } from 'mongoose';
 import { Post, PostDocument } from './post.schema';
-import { Comment, CommentDocument, CommentSchema } from './comment.schema';
+import { Comment, CommentDocument } from './comment.schema';
 import { UsersRepository } from 'src/users/db/users.repository';
 
 @Injectable()
@@ -45,15 +45,15 @@ export class CommentsRepository {
   }
   async create({
     postId,
-    author,
+    authorId,
     content,
   }: {
     postId: Types.ObjectId | string;
-    author: Types.ObjectId | string;
+    authorId: Types.ObjectId | string;
     content: string;
   }) {
     const comment: Comment = {
-      author,
+      author: authorId,
       content,
       favoriteCount: 0,
       favoritedBy: [],
@@ -99,7 +99,7 @@ export class CommentsRepository {
     return comment;
   }
 
-  async find({
+  async findOne({
     commentId,
     postId,
   }: {

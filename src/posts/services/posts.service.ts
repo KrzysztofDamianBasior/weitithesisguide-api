@@ -1,55 +1,31 @@
 import { Injectable } from '@nestjs/common';
-import { CreatePostDto } from '../dtos/createPostDto';
-import { CreateAnswerDto } from '../dtos/createAnswerDto';
 import { PostsRepository } from '../db/posts.repository';
-import { Answer, Post } from '../db/posts.schema';
 
 @Injectable()
 export class PostsService {
   constructor(private readonly postsRepository: PostsRepository) {}
 
-  async findAllPosts() {
-    return this.postsRepository.findPosts({});
+  async create({ authorId, content }: { authorId: string; content: string }) {
+    return this.postsRepository.create({ authorId, content });
   }
 
-  async findOnePost(id: string) {
-    return this.postsRepository.findPost({ _id: id });
+  async findMany({ offset, perPage }: { offset: number; perPage: number }) {
+    return this.postsRepository.findAll({ offset, perPage });
   }
 
-  async createPost(authorId: string, createPostDto: CreatePostDto) {
-    const post: Post = {
-      author: authorId,
-      answers: [],
-      favoriteCount: 0,
-      favoritedBy: [],
-      question: createPostDto.question,
-    };
-    return this.postsRepository.createPost(post);
+  async findOne(id: string) {
+    return this.postsRepository.findOne(id);
   }
 
-  async createAnswer(authorId: string, createAnswerDto: CreateAnswerDto) {
-    const answer: Answer = {
-      author: authorId,
-      content: createAnswerDto.answer,
-      favoriteCount: 0,
-      favoritedBy: [],
-    };
-    return this.postsRepository.createAnswer(createAnswerDto.postId, answer);
+  async update({ id, content }: { id: string; content: string }) {
+    return this.postsRepository.updateContent({ id, content });
   }
 
-  async toggleLikePost(postId: string, userId: string) {
-    return this.postsRepository.toggleLikePost(postId, userId);
+  async remove(id: string) {
+    this.postsRepository.remove(id);
   }
 
-  async toggleLikeAnswer(postId: string, answerId: string, userId: string) {
-    return this.postsRepository.toggleLikeAnswer(postId, answerId, userId);
-  }
-
-  async removePost(postId: string) {
-    return this.postsRepository.deletePost(postId);
-  }
-
-  async removeAnswer(postId: string, answerId: string) {
-    return this.postsRepository.deleteAnswer(postId, answerId);
+  async toggleLike({ postId, userId }: { postId: string; userId: string }) {
+    return this.postsRepository.toggleLike({ postId, userId });
   }
 }

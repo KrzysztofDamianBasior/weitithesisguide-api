@@ -1,9 +1,14 @@
-import { Inject, Injectable, forwardRef } from '@nestjs/common';
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  forwardRef,
+} from '@nestjs/common';
 import { UsersRepository } from '../db/users.repository';
 import { User } from '../db/users.schema';
 import * as bcrypt from 'bcrypt';
-import { SendgridService } from 'src/auth/services/sendgrid.service';
 import { AuthService } from 'src/auth/services/auth.service';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class UsersService {
@@ -11,33 +16,61 @@ export class UsersService {
     private readonly usersRepository: UsersRepository,
     @Inject(forwardRef(() => AuthService))
     private readonly authService: AuthService,
+    private readonly configService: ConfigService,
   ) {}
 
   async create({
     username,
-    password,
+    plainTextPassword,
     email,
   }: {
     username: string;
-    password: string;
+    plainTextPassword: string;
     email?: string;
   }) {
-    const salt = await bcrypt.genSalt(10);
+    const salt = await bcrypt.genSalt(
+      this.configService.get<number>('SALT_LENGTH'),
+    );
+    const hashedPassword = await bcrypt.hash(plainTextPassword, salt);
     const user: User = {
       username,
       email: '',
-      password: await bcrypt.hash(password, salt),
+      password: hashedPassword,
       resetLink: '',
       roles: ['User'],
     };
     if (email && email.length > 3) {
       user.email = 'waiting for verification';
       const newUser = await this.usersRepository.createOne(user);
-      this.authService.sendActivateLink({ id: newUser.sub, username, email });
-      return newUser;
+      const token = await this.authService.sendActivateLink({
+        id: newUser.sub,
+        username,
+        email,
+      });
+      return this.usersRepository.updateResetLink({
+        id: newUser.sub,
+        resetLink: token,
+      });
     } else {
       return await this.usersRepository.createOne(user);
     }
+  }
+
+  async sendActivateLinkAndSetResetLink({
+    sub,
+    username,
+    email,
+  }: {
+    sub: string;
+    username: string;
+    email: string;
+  }) {
+    const resetLink = await this.authService.sendActivateLink({
+      id: sub,
+      username,
+      email,
+    });
+    return this.usersRepository.updateResetLink({ resetLink, id: sub });
   }
 
   async findPasswordByUsername(username: string) {
@@ -69,7 +102,11 @@ export class UsersService {
   }
 
   async all({ offset, perPage }: { offset: number; perPage: number }) {
-    return this.usersRepository.find({ usersFilterQuery: {}, offset, perPage });
+    return this.usersRepository.findMany({
+      usersFilterQuery: {},
+      offset,
+      perPage,
+    });
   }
   async updateEmailAndRemoveResetLink({
     resetLink,
@@ -90,8 +127,11 @@ export class UsersService {
     resetLink: string;
     password: string;
   }) {
+    const salt = await bcrypt.genSalt(
+      this.configService.get<number>('SALT_LENGTH'),
+    );
     return this.usersRepository.updatePasswordAndRemoveResetLink({
-      password,
+      password: await bcrypt.hash(password, salt),
       resetLink,
     });
   }
@@ -100,29 +140,42 @@ export class UsersService {
     return this.usersRepository.updateResetLink({ id, resetLink });
   }
 
-  async updatePassword({ id, password }: { id: string; password: string }) {
-    return this.usersRepository.updatePassword({ id, password });
+  async updatePassword({
+    id,
+    plainTextPassword,
+  }: {
+    id: string;
+    plainTextPassword: string;
+  }) {
+    const salt = await bcrypt.genSalt(
+      this.configService.get<number>('SALT_LENGTH'),
+    );
+    const hashedPassword = await bcrypt.hash(plainTextPassword, salt);
+
+    return this.usersRepository.updatePassword({
+      id,
+      password: hashedPassword,
+    });
   }
 
   async updateUsername({ id, username }: { id: string; username: string }) {
-    if (!this.usersRepository.isUsernameExist(username)) {
-      this.usersRepository.updateUsername({ id, username });
-    } else {
-      return 'this username is already taken';
+    if (this.usersRepository.isUsernameExist(username)) {
+      throw new BadRequestException('this username is already taken');
     }
+    return this.usersRepository.updateUsername({ id, username });
   }
 
   async edit(
     id: string,
     {
       email,
-      password,
+      plainTextPassword,
       username,
       resetLink,
     }: {
       username?: string;
       email?: string;
-      password?: string;
+      plainTextPassword?: string;
       resetLink?: string;
     },
   ) {
@@ -131,7 +184,13 @@ export class UsersService {
     if (email) {
       update.email = email;
     }
-    if (password) update.password = username;
+    if (plainTextPassword) {
+      const salt = await bcrypt.genSalt(
+        this.configService.get<number>('SALT_LENGTH'),
+      );
+      const hashedPassword = await bcrypt.hash(plainTextPassword, salt);
+      update.password = hashedPassword;
+    }
     if (resetLink || resetLink === '') update.resetLink = resetLink;
 
     return this.usersRepository.forceUpdate({
