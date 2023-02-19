@@ -34,13 +34,17 @@ export class NotesRepository {
     return this.noteModel.deleteOne({ id });
   }
 
-  async find(postsFilterQuery: FilterQuery<Note>): Promise<NoteDocument[]> {
-    return this.noteModel.find(postsFilterQuery);
-  }
-
-  async findAll({ offset, perPage }: { offset: number; perPage: number }) {
+  async findMany({
+    filterQuery,
+    offset,
+    perPage,
+  }: {
+    filterQuery: FilterQuery<Note>;
+    offset: number;
+    perPage: number;
+  }): Promise<NoteDocument[]> {
     return this.noteModel
-      .find()
+      .find(filterQuery)
       .skip(offset)
       .limit(perPage)
       .sort({ createdAt: 'desc' });
