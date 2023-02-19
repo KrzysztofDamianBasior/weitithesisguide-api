@@ -7,6 +7,7 @@ import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
 import { PostsModule } from './posts/posts.module';
 import { validate } from './env.validation';
+import { NotesModule } from './notes/notes.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { validate } from './env.validation';
     UsersModule,
     AuthModule,
     PostsModule,
+    NotesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
