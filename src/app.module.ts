@@ -28,37 +28,3 @@ import { NotesModule } from './notes/notes.module';
   providers: [AppService],
 })
 export class AppModule {}
-
-// kolekcje: users, posts, notes
-
-// users: {
-// 	username: string,
-// 	email: string,
-// 	password: string,
-// 	resetLink: string,
-// 	activityHistory: Schema.ObjectId[]
-// }
-// posts: {
-// 	creator: Schema.ObjectId,
-// 	title: string,
-// 	question: string,
-// 	favouritedBy: Schema.ObjectId[]
-// 	favoritedCount: number
-// 	updatedAt: Date
-// 	createdAt: Date
-
-// 	answers: {
-// 		author: Schema.ObjectId,
-// 		content: String
-// 		favouritedBy: Schema.ObjectId
-// 		favoritedCount: number
-// 		updatedAt: Date
-// 		createdAt: Date
-// 	}
-// }
-// notes: {
-// 	author: string
-// 	content: string
-// 	updatedAt: Date
-// 	createdAt: Date
-// }
