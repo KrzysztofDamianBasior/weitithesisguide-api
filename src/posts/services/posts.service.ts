@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { ForbiddenException, Injectable } from '@nestjs/common';
 import { PostsRepository } from '../db/posts.repository';
 
 @Injectable()
@@ -27,5 +27,21 @@ export class PostsService {
 
   async toggleLike({ postId, userId }: { postId: string; userId: string }) {
     return this.postsRepository.toggleLike({ postId, userId });
+  }
+
+  async verifyPostAuthor({
+    userId,
+    postId,
+  }: {
+    userId: string;
+    postId: string;
+  }) {
+    const post = await this.postsRepository.findOne(postId);
+    if (post.author.toString() !== userId) {
+      throw new ForbiddenException(
+        'not enough privileges to perform an action on a resource',
+      );
+    }
+    return true;
   }
 }

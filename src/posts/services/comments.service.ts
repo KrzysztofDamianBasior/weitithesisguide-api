@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { ForbiddenException, Injectable } from '@nestjs/common';
 import { CommentsRepository } from '../db/comments.repository';
 
 @Injectable()
@@ -47,5 +47,26 @@ export class CommentsService {
     commentId: string;
   }) {
     return this.commentsRepository.toggleLike({ postId, userId, commentId });
+  }
+
+  async verifyCommentAuthor({
+    userId,
+    postId,
+    commentId,
+  }: {
+    userId: string;
+    postId: string;
+    commentId: string;
+  }) {
+    const comment = await this.commentsRepository.findOne({
+      commentId,
+      postId,
+    });
+    if (comment.author.toString() !== userId) {
+      throw new ForbiddenException(
+        'not enough privileges to perform an action on a resource',
+      );
+    }
+    return true;
   }
 }

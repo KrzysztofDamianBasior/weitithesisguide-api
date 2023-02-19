@@ -87,6 +87,22 @@ export class PostsController {
   updatePostContent(
     @Param('id') id: string,
     @Body() createPostDto: CreatePostDto,
+    @Request() req,
+  ) {
+    this.postsService.verifyPostAuthor({
+      userId: req.user.sub,
+      postId: id,
+    });
+    return this.postsService.update({ content: createPostDto.content, id });
+  }
+
+  @UseGuards(RolesGuard)
+  @UseGuards(JwtAuthGuard)
+  @Roles('Admin')
+  @Patch(':id/moderateContent')
+  modereatePostContent(
+    @Param('id') id: string,
+    @Body() createPostDto: CreatePostDto,
   ) {
     return this.postsService.update({ content: createPostDto.content, id });
   }
@@ -100,6 +116,27 @@ export class PostsController {
     @Request() req,
     @Body() updateCommentDto: CreateCommentDto,
   ) {
+    this.commentsService.verifyCommentAuthor({
+      userId: req.user.sub,
+      postId,
+      commentId,
+    });
+    return this.commentsService.update({
+      commentId,
+      content: updateCommentDto.content,
+      postId,
+    });
+  }
+
+  @UseGuards(RolesGuard)
+  @UseGuards(JwtAuthGuard)
+  @Roles('Admin')
+  @Patch(':postId/comments/:commentId/moderateContent')
+  moderateCommentContent(
+    @Param('postId') postId: string,
+    @Param('commentId') commentId: string,
+    @Body() updateCommentDto: CreateCommentDto,
+  ) {
     return this.commentsService.update({
       commentId,
       content: updateCommentDto.content,
@@ -110,18 +147,27 @@ export class PostsController {
   @UseGuards(RolesGuard)
   @UseGuards(JwtAuthGuard)
   @Delete(':id')
-  remove(@Param('id') id: string) {
+  remove(@Param('id') id: string, @Request() req) {
+    this.postsService.verifyPostAuthor({
+      userId: req.user.sub,
+      postId: id,
+    });
     return this.postsService.remove(id);
   }
 
   @UseGuards(RolesGuard)
   @UseGuards(JwtAuthGuard)
-  @Roles('Admin')
   @Delete(':postId/comments/:commentId')
   removeComment(
     @Param('postId') postId: string,
     @Param('commentId') commentId: string,
+    @Request() req,
   ) {
+    this.commentsService.verifyCommentAuthor({
+      userId: req.user.sub,
+      postId,
+      commentId,
+    });
     return this.commentsService.remove({ postId, commentId });
   }
 
